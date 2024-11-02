@@ -1,0 +1,11 @@
+vista inicio:
+    - dashboard,notificaciones alertas etc
+
+vista proveedores:
+    - vista de 3 tabs (operaciones crud) --> tabla de proveedores
+
+vista productos:
+    - vista de 3 tablas (operaciones crud) --> tabla de productos
+
+vista analisis:
+    -  analisis de inventario --> tabla entradas,salida e historial del inventario

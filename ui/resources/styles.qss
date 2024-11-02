@@ -1,0 +1,63 @@
+/* style.qss */
+
+QWidget {
+    background-color: white; /* Fondo blanco para todos los widgets */
+    color: #000000; /* Color de texto negro */
+}
+
+/* Estilo específico para los botones del menú */
+.MenuButton {
+    background-color: #2f3136; /* Fondo de botones */
+    color: #dcddde; /* Color de texto de botones */
+    /* border: 2px inset #2f3136;*/ /* Cambia a un borde de 2px y elimina el padding */
+    padding: 0; /* Elimina el padding para que se expandan completamente */
+    margin: 0; /* Elimina el margen */
+    height: 100%; /* Asegura que el botón use el 100% de la altura del contenedor */
+}
+
+/* Otras propiedades para el hover */
+.MenuButton:hover {
+    background-color: #36393f; /* Fondo de botón al pasar el mouse */
+    color: #ffffff; /* Color de texto al pasar el mouse */
+}
+
+
+QLineEdit {
+    background-color: #2f3136; /* Fondo de campo de texto */
+    color: #72767d; /* Color de texto en campo de texto */
+    border-bottom: 2px solid #2f3136;
+    padding: 8px 15px; /* Espaciado interno */
+    border-radius: 5px; /* Bordes redondeados */
+}
+
+QLabel {
+    color: #72767d; /* Color de texto para etiquetas */
+}
+
+/* Estilo específico para los tabs */
+QTabWidget {
+    background-color: #2f3136; /* Fondo blanco para el widget de tabs */
+    border-radius: 15px; /* Sin borde en el contenedor de tabs */
+}
+
+/* Estilo para las pestañas */
+QTabBar {
+    background-color: #2f3136; /* Fondo de la barra de tabs */
+    margin: 0; /* Elimina el margen */
+    padding: 0; /* Elimina el espaciado interno */
+}
+
+/* Estilo para cada pestaña */
+QTabBar::tab {
+    height: 50px; /* Altura de las pestañas */
+    width: 220px; /* Ancho de las pestañas */
+    font-size: 14px; /* Tamaño de la fuente */
+    background-color: lightgray; /* Fondo de las pestañas */
+    padding: 5px; /* Espaciado interno */
+}
+
+QTabBar::tab:selected {
+    /* Estilos para la pestaña seleccionada ejemplo : rojo, azul, etc.*/
+    background-color: tomato; /* Fondo de la pestaña seleccionada */
+    color : white;
+}
