@@ -9,3 +9,13 @@ vista productos:
 
 vista analisis:
     -  analisis de inventario --> tabla entradas,salida e historial del inventario
+
+
+..................:::::::: Pendientes ::::::................
+
+- Dividir y aplicar estilos
+- Terminar vista inicio y analisis
+- Dar estilo a vista proveedores y productos
+    - Cambiar ventanas de dialogo de provedores y productos
+    - Agregar icon en tool bar de productos y provedores
+    - Manejo de errores en consultas
