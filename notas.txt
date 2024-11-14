@@ -19,3 +19,6 @@ vista analisis:
     - Cambiar ventanas de dialogo de provedores y productos
     - Agregar icon en tool bar de productos y provedores
     - Manejo de errores en consultas
+
+
+* crear bases de datos corrigiendo errores de relaciones
