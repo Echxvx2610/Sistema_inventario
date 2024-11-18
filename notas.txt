@@ -22,3 +22,5 @@ vista analisis:
 
 
 * crear bases de datos corrigiendo errores de relaciones
+
+* mensaje desde nuevo setup
