@@ -1,9 +1,23 @@
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
+import logging
 import pymysql
 from pymysql.err import OperationalError
 #* libreia mysql retornaba error al importar BD alternativa (pymysql)
+
+# Configurar el registro
+logging.basicConfig(filename="app.log", level=logging.ERROR, 
+                    format="%(asctime)s - %(levelname)s - %(message)s")
+
+def mostrar_error(mensaje):
+    """Mostrar un cuadro de mensaje en caso de error."""
+    msg_box = QMessageBox()
+    msg_box.setIcon(QMessageBox.Critical)
+    msg_box.setWindowTitle("Error")
+    msg_box.setText("Ha ocurrido un error.")
+    msg_box.setInformativeText(mensaje)
+    msg_box.exec_()
 
 def conectar_bd():
     connection = pymysql.connect(
@@ -13,6 +27,7 @@ def conectar_bd():
         database='sistema_inventario'
     )
     return connection
+
 def crear_base_datos(conexion):
     cursor = conexion.cursor()
     try:
@@ -116,28 +131,43 @@ def load_data_proveedor(self):
                 self.table_widget.setItem(row_idx, col_idx, item)
 
 def add_proveedor(nombre, apellido, direccion, telefono):
-    connection = conectar_bd()
-    with connection.cursor() as cursor:
-        sql = "INSERT INTO proveedores (nombre_provedor, apellido_provedor, direccion, telefono) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql, (nombre, apellido, direccion, telefono))
-    connection.commit()
-    connection.close()
+    try:
+        connection = conectar_bd()
+        with connection.cursor() as cursor:
+            sql = "INSERT INTO proveedores (nombre_provedor, apellido_provedor, direccion, telefono) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (nombre, apellido, direccion, telefono))
+        connection.commit()
+        connection.close()
+    except Exception as e:
+        error_message = f"Error al agregar proveedor: {str(e)}"
+        logging.error(error_message)
+        mostrar_error(error_message)
 
 def edit_proveedor(proveedor_id, nombre, apellido, direccion, telefono):
-    connection = conectar_bd()
-    with connection.cursor() as cursor:
-        sql = "UPDATE proveedores SET nombre_provedor=%s, apellido_provedor=%s, direccion=%s, telefono=%s WHERE provedor_id=%s"
-        cursor.execute(sql, (nombre, apellido, direccion, telefono, proveedor_id))
-    connection.commit()
-    connection.close()
+    try:
+        connection = conectar_bd()
+        with connection.cursor() as cursor:
+            sql = "UPDATE proveedores SET nombre_provedor=%s, apellido_provedor=%s, direccion=%s, telefono=%s WHERE provedor_id=%s"
+            cursor.execute(sql, (nombre, apellido, direccion, telefono, proveedor_id))
+        connection.commit()
+        connection.close()
+    except Exception as e:
+        error_message = f"Error al editar proveedor con ID {proveedor_id}: {str(e)}"
+        logging.error(error_message)
+        mostrar_error(error_message)
 
 def delete_proveedor(proveedor_id):
-    connection = conectar_bd()
-    with connection.cursor() as cursor:
-        sql = "DELETE FROM proveedores WHERE provedor_id=%s"
-        cursor.execute(sql, (proveedor_id,))
-    connection.commit()
-    connection.close()
+    try:
+        connection = conectar_bd()
+        with connection.cursor() as cursor:
+            sql = "DELETE FROM proveedores WHERE provedor_id=%s"
+            cursor.execute(sql, (proveedor_id,))
+        connection.commit()
+        connection.close()
+    except Exception as e:
+        error_message = f"Error al eliminar proveedor con ID {proveedor_id}: {str(e)}"
+        logging.error(error_message)
+        mostrar_error(error_message)
 
 # Operaciones CRUD de productos
 def load_data_productos(self):
@@ -176,38 +206,80 @@ def load_data_proveedor_combobox():
     connection.close()
     return proveedores
 
-def add_producto(nombre, descripcion, precio, stock):
-    connection = conectar_bd()
-    cursor = connection.cursor()
-    with connection.cursor() as cursor:
-        sql = "INSERT INTO productos (nombre_producto, descripcion, precio, stock) VALUES (%s, %s, %s, %s)"
-        cursor.execute(sql, (nombre, descripcion, precio, stock))
-    connection.commit()
-    connection.close()
-
-def edit_producto(producto_id, nombre_producto, precio, cantidad_en_stock, stock_minimo, provedor_id):
-    connection = conectar_bd()
-    cursor = connection.cursor()
+def add_producto(nombre_producto, categoria, precio, stock_minimo, cantidad_en_stock, provedor_id=None):
+    """Agregar un producto a la base de datos."""
     try:
-        cursor.execute("""
-            UPDATE productos
-            SET nombre_producto = %s, precio = %s, stock_minimo = %s, cantidad_en_stock = %s, provedor_id = %s
-            WHERE producto_id = %s
-        """, (nombre_producto, precio, stock_minimo, cantidad_en_stock, provedor_id, producto_id))
+        connection = conectar_bd()
+        cursor = connection.cursor()
+
+        query = """
+        INSERT INTO productos (nombre_producto, categoria, precio, stock_minimo, cantidad_en_stock, provedor_id)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        values = (nombre_producto, categoria, precio, stock_minimo, cantidad_en_stock, provedor_id)
+
+        cursor.execute(query, values)
         connection.commit()
     except Exception as e:
-        print(f"Error al actualizar el producto: {e}")
+        logging.error(f"Error al agregar producto: {e}")
+        mostrar_error("No se pudo agregar el producto. Verifique los datos e intente nuevamente.")
     finally:
-        cursor.close()
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+def edit_producto(producto_id, nombre_producto, precio, cantidad_en_stock, stock_minimo, provedor_id):
+    """Editar un producto en la base de datos."""
+    try:
+        connection = conectar_bd()
+        cursor = connection.cursor()
+
+        query = """
+        UPDATE productos
+        SET nombre_producto = %s, precio = %s, stock_minimo = %s, cantidad_en_stock = %s, provedor_id = %s
+        WHERE producto_id = %s
+        """
+        values = (nombre_producto, precio, stock_minimo, cantidad_en_stock, provedor_id, producto_id)
+
+        cursor.execute(query, values)
+        connection.commit()
+    except Exception as e:
+        logging.error(f"Error al actualizar producto: {e}")
+        mostrar_error("No se pudo actualizar el producto. Por favor, intente nuevamente.")
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 def delete_producto(producto_id):
-    connection = conectar_bd()
-    cursor = connection.cursor()
-    with connection.cursor() as cursor:
-        sql = "DELETE FROM productos WHERE producto_id=%s"
-        cursor.execute(sql, (producto_id,))
-    connection.commit()
-    connection.close()
+    """Eliminar un producto de la base de datos, incluso si tiene un proveedor asignado."""
+    try:
+        connection = conectar_bd()
+        cursor = connection.cursor()
+
+        # Consulta para desactivar temporalmente las verificaciones de clave foránea
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+
+        # Consulta para eliminar el producto
+        query = "DELETE FROM productos WHERE producto_id = %s"
+        cursor.execute(query, (producto_id,))
+
+        # Reactivar las verificaciones de clave foránea
+        cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+
+        connection.commit()
+        print(f"Producto con ID {producto_id} eliminado exitosamente.")
+    except Exception as e:
+        logging.error(f"Error al eliminar producto: {e}")
+        mostrar_error("No se pudo eliminar el producto. Intente nuevamente.")
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
 
 # Operaciones CRUD para Analisis de inventario
 def load_historial():
@@ -228,7 +300,7 @@ def load_historial():
         cursor.close()
         connection.close()
 
-
+# quitar comentarios y ejecutar para crear BD y tablas
 # #Función principal para la creación de la base de datos y las tablas del sistema
 # def main():
 #     # Establecer la conexión a la base de datos
