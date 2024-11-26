@@ -67,36 +67,20 @@ def crear_tablas(conexion):
         cursor.execute(tabla_usuarios)
         print("Tabla 'usuarios' creada exitosamente.")
 
-        # Tabla entradas_inventario
-        tabla_entradas = """
-        CREATE TABLE IF NOT EXISTS entradas_inventario (
-            entrada_id INT AUTO_INCREMENT PRIMARY KEY,
-            cantidad_entrada INT NOT NULL,
-            fecha_entrada DATETIME NOT NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-        """
-        cursor.execute(tabla_entradas)
-        print("Tabla 'entradas_inventario' creada exitosamente.")
-
-        # Tabla salidas_inventario
-        tabla_salidas = """
-        CREATE TABLE IF NOT EXISTS salidas_inventario (
-            salida_id INT AUTO_INCREMENT PRIMARY KEY,
-            cantidad_salida INT NOT NULL,
-            fecha_salida DATETIME NOT NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-        """
-        cursor.execute(tabla_salidas)
-        print("Tabla 'salidas_inventario' creada exitosamente.")
-
-        # Tabla historial_inventario
+        # Eliminar las tablas 'entradas_inventario' y 'salidas_inventario'
+        cursor.execute("DROP TABLE IF EXISTS entradas_inventario;")
+        cursor.execute("DROP TABLE IF EXISTS salidas_inventario;")
+        
+        # Tabla historial_inventario (simplificada para entradas y salidas)
         tabla_historial = """
         CREATE TABLE IF NOT EXISTS historial_inventario (
-            cantidad_historial INT NOT NULL,
-            fecha_historial DATETIME NOT NULL,
+            historial_id INT AUTO_INCREMENT PRIMARY KEY,
+            producto_id INT NOT NULL,
+            cantidad_movimiento INT NOT NULL,
+            fecha_movimiento DATETIME NOT NULL,
             usuario_id INT,
             tipo_movimiento ENUM('entrada', 'salida') NOT NULL,
-            PRIMARY KEY (fecha_historial, usuario_id),
+            FOREIGN KEY (producto_id) REFERENCES productos(producto_id),
             FOREIGN KEY (usuario_id) REFERENCES usuarios(usuario_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
         """
@@ -225,14 +209,30 @@ def delete_producto(producto_id):
     connection.commit()
     connection.close()
 
-#* Función principal para la creación de la base de datos y las tablas del sistema
-# def main():
-#     host_name = "localhost"
-#     user_name = "root"
-#     user_password = "admin"
+# Operaciones CRUD para Analisis de inventario
+def load_historial():
+    """
+    Recupera los datos de la tabla historial_inventario y los devuelve como una lista de tuplas.
+    """
+    try:
+        connection = conectar_bd()
+        cursor = connection.cursor()
 
+        # Consulta para recuperar los datos
+        query = "SELECT * FROM historial_inventario"
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        return rows  # Devuelve los datos como una lista de tuplas
+    finally:
+        cursor.close()
+        connection.close()
+
+
+# #Función principal para la creación de la base de datos y las tablas del sistema
+# def main():
 #     # Establecer la conexión a la base de datos
-#     conexion = establecer_conexion(host_name, user_name, user_password)
+#     conexion = conectar_bd()
 #     if conexion:
 #         crear_base_datos(conexion)
 #         crear_tablas(conexion)
