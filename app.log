@@ -1,3 +1,4 @@
 2024-11-25 21:05:00,681 - ERROR - Error al eliminar producto: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`sistema_inventario`.`historial_inventario`, CONSTRAINT `historial_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`producto_id`))')
 2024-11-25 21:18:18,353 - ERROR - Error al eliminar proveedor con ID 4: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`sistema_inventario`.`productos`, CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`provedor_id`) REFERENCES `proveedores` (`provedor_id`))')
 2024-11-25 21:18:23,141 - ERROR - Error al eliminar proveedor con ID 5: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`sistema_inventario`.`productos`, CONSTRAINT `productos_ibfk_1` FOREIGN KEY (`provedor_id`) REFERENCES `proveedores` (`provedor_id`))')
+2024-11-26 22:20:37,389 - ERROR - Error al registrar usuario: (1054, "Unknown column 'email' in 'INSERT INTO'")

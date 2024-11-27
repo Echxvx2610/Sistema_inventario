@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import *
 from PySide6.QtGui import *
 from PySide6.QtCore import *
+from PySide6.QtWidgets import QMessageBox
 import logging
 import pymysql
 from pymysql.err import OperationalError
@@ -299,6 +300,47 @@ def load_historial():
     finally:
         cursor.close()
         connection.close()
+
+# Operaciones Usuarios
+def registrar_usuario(nombre_usuario, correo, contraseña, nivel_acceso=1):
+    """
+    Registrar un nuevo usuario en la base de datos.
+    """
+    try:
+        connection = conectar_bd()
+        with connection.cursor() as cursor:
+            query = """
+                INSERT INTO usuarios (nombre_usuario, correo, contraseña, nivel_acceso)
+                VALUES (%s, %s, %s, %s)
+            """
+            cursor.execute(query, (nombre_usuario, correo, contraseña, nivel_acceso))
+        connection.commit()
+        connection.close()
+        return True
+    except Exception as e:
+        logging.error(f"Error al registrar usuario: {e}")
+        mostrar_error("No se pudo registrar el usuario. Verifica la información.")
+        return False
+
+def validar_usuario(nombre_usuario, contraseña):
+    """
+    Validar el usuario y contraseña en la base de datos.
+    """
+    try:
+        connection = conectar_bd()
+        with connection.cursor() as cursor:
+            query = """
+                SELECT nivel_acceso FROM usuarios 
+                WHERE nombre_usuario = %s AND contraseña = %s
+            """
+            cursor.execute(query, (nombre_usuario, contraseña))
+            resultado = cursor.fetchone()
+        connection.close()
+        return resultado  # Retorna el nivel de acceso si las credenciales son válidas, None si no lo son
+    except Exception as e:
+        logging.error(f"Error al validar usuario: {e}")
+        mostrar_error("Hubo un problema al validar las credenciales.")
+        return None
 
 # quitar comentarios y ejecutar para crear BD y tablas
 # #Función principal para la creación de la base de datos y las tablas del sistema
