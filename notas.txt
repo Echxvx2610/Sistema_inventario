@@ -24,3 +24,25 @@ vista analisis:
 * crear bases de datos corrigiendo errores de relaciones
 
 * mensaje desde nuevo setup
+
+*****************************************************************************************
+análisis/historial:
+graficos:
+grafico de barras ganancias ( precio * cantidad de salida)
+grafico de pastel ( productos mas vendidos -> mayor salida inventario)
+grafico menos vendidos ( merma -> menor salida inventario)
+
+
+análisis:
+csv -> exportar tabla para graficar // no necesario
+pdf:
+	Reporte mensual Historial Inventario
+Graficos:
+	Se muestran los graficos
+Analisis:
+	Información de los graficos pero en tablas y texto
+	Posible análisis pandas
+
+pagina de análisis de abre y se imprime en el navegador (apexcharts.js)
+
+****************************************************************************************

@@ -388,14 +388,27 @@ class ProveedorView(QWidget):
         if selected_index == -1:
             QMessageBox.warning(self, "Advertencia", "Selecciona un proveedor para eliminar")
             return
-        
+
         proveedor_id = self.table_widget.item(selected_index, 0).text()
-        try:
-            delete_proveedor(proveedor_id)
-            load_data_proveedor(self)  # Recargar la tabla después de eliminar
-        except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo eliminar el proveedor: {str(e)}")
-            print("Error al eliminar el proveedor:", str(e))
+
+        respuesta = QMessageBox.question(
+            self,
+            "Eliminar Proveedor",
+            "¿Estás seguro de eliminar el proveedor? \nEliminar un proveedor eliminará todos los productos asociados a él.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if respuesta == QMessageBox.Yes:
+            try:
+                delete_proveedor(proveedor_id)
+                # Llamar a load_data_proveedor directamente desde operaciones_BD
+                load_data_proveedor(self)
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"No se pudo eliminar el proveedor: {str(e)}")
+                print("Error al eliminar el proveedor:", str(e))
+
+
 
 class ProductosView(QWidget):
     def __init__(self):
