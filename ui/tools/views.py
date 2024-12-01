@@ -6,6 +6,11 @@ from .operaciones_BD import *
 import matplotlib.pyplot as plt
 import numpy as np
 import re  # Importar para usar expresiones regulares
+import plotly.graph_objects as go
+import plotly.express as px
+import webbrowser
+import os
+
 
 class InicioView(QWidget):
     def __init__(self):
@@ -180,6 +185,7 @@ class InicioView(QWidget):
         return scroll_area
 
 class ProveedorView(QWidget):
+    proveedor_eliminado = Signal()  # Señal para notificar cuando se elimine un proveedor
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -402,6 +408,8 @@ class ProveedorView(QWidget):
         if respuesta == QMessageBox.Yes:
             try:
                 delete_proveedor(proveedor_id)
+                # Emitir la señal después de eliminar el proveedor
+                self.proveedor_eliminado.emit()
                 # Llamar a load_data_proveedor directamente desde operaciones_BD
                 load_data_proveedor(self)
             except Exception as e:
@@ -656,6 +664,9 @@ class ProductosView(QWidget):
             delete_producto(producto_id)
             load_data_productos(self)  # Recargar datos
 
+    def reload_data(self):
+        """Recarga los datos de la tabla de productos."""
+        load_data_productos(self)
 # Vista para el historial
 class AnalisisView(QWidget):
     def __init__(self):
@@ -737,8 +748,42 @@ class AnalisisView(QWidget):
 
     # Métodos para manejar las acciones de la barra de herramientas
     def generar_grafico(self):
-        print("Generar gráfico: Implementar esta función.")
+        # Aquí puedes extraer los datos que desees para el gráfico
+        rows = load_historial()  # Esta es la misma función que usas para cargar los datos en la tabla
+        ids_productos = [row[1] for row in rows]  # Suponiendo que el Producto ID está en la segunda columna
+        cantidad_movimiento = [row[2] for row in rows]  # Suponiendo que la cantidad está en la tercera columna
+        fechas_movimiento = [row[3] for row in rows]  # Suponiendo que la fecha está en la cuarta columna
 
+        # Crear el gráfico, por ejemplo, un gráfico de barras para la cantidad por producto
+        fig = go.Figure(data=[go.Bar(
+            x=ids_productos,
+            y=cantidad_movimiento,
+            hoverinfo='x+y',  # Mostrar información del gráfico cuando se pase el mouse sobre las barras
+            marker=dict(color='royalblue')
+        )])
+
+        # Configuración del gráfico
+        fig.update_layout(
+            title='Movimientos de Inventario por Producto',
+            xaxis_title='Producto ID',
+            yaxis_title='Cantidad Movimiento',
+            template='plotly_dark'  # Estilo de gráfico
+        )
+
+        # Definir la ruta para guardar el archivo HTML
+        html_file = r'ui/resources/reportes/html/grafico_inventario.html'
+
+        # Asegurarse de que la carpeta exista
+        os.makedirs(os.path.dirname(html_file), exist_ok=True)
+
+        # Crear el archivo HTML para el gráfico
+        fig.write_html(html_file)
+
+        # Abrir el archivo HTML en el navegador
+        webbrowser.open(f'file://{os.path.abspath(html_file)}')
+
+        print(f"Gráfico generado y abierto en el navegador. Archivo guardado en {html_file}")
+        
     def exportar_csv(self):
         print("Exportar CSV: Implementar esta función.")
 

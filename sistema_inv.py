@@ -84,21 +84,22 @@ class MainWindow(QMainWindow):
             sidebar_layout.addWidget(btn)
 
             # Agregar la vista correspondiente al stacked widget
-            if item == "Inicio":
-                # Si el item es "Inicio", creamos una instancia de InicioView
-                page = InicioView()
-            elif item == "Proveedores":
-                # Si el item es "Proveedores", creamos una instancia de ProveedorView
-                page = ProveedorView()
-            elif item == "Productos":
-                # Si el item es "Productos", creamos una instancia de ProductosView
-                page = ProductosView()
-            elif item == "Análisis":
-                # Si el item es "Análisis", creamos una instancia de AnalisisView
-                page = AnalisisView()
+            for item in menu_items:
+                if item == "Inicio":
+                    page = InicioView()
+                elif item == "Proveedores":
+                    page = ProveedorView()
+                    self.proveedor_view = page  # Guarda una referencia a la vista de proveedores
+                elif item == "Productos":
+                    page = ProductosView()
+                    self.productos_view = page  # Guarda una referencia a la vista de productos
+                elif item == "Análisis":
+                    page = AnalisisView()
 
-            # Agregar la vista al stacked widget
-            self.stacked_widget.addWidget(page)
+                self.stacked_widget.addWidget(page)
+
+            # Conecta la señal de proveedor eliminado a la función de recarga de productos
+            self.proveedor_view.proveedor_eliminado.connect(self.productos_view.reload_data)
 
         # Aseguramos que el sidebar ocupe todo el ancho disponible
         sidebar_layout.addStretch()
