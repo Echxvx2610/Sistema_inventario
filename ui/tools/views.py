@@ -186,6 +186,7 @@ class InicioView(QWidget):
 
 class ProveedorView(QWidget):
     proveedor_eliminado = Signal()  # Señal para notificar cuando se elimine un proveedor
+
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -194,6 +195,9 @@ class ProveedorView(QWidget):
         layout = QVBoxLayout(self)
         self.setStyleSheet("background-color: white;")
 
+        # Crear un contenedor horizontal para la barra de herramientas y la barra de búsqueda
+        header_layout = QHBoxLayout()
+
         # Crear la barra de herramientas
         toolbar = QToolBar()
         toolbar.setStyleSheet("background-color: #2f3136; padding: 5px; color: white;")
@@ -201,7 +205,7 @@ class ProveedorView(QWidget):
         # Acción para agregar proveedor
         add_action = QAction(QIcon(r"ui\resources\img\agregar_usuario.png"), "Agregar", self)
         add_action.triggered.connect(self.agregar_proveedor)
-        toolbar.setIconSize(QSize(45,45))
+        toolbar.setIconSize(QSize(45, 45))
         toolbar.addAction(add_action)
 
         # Acción para editar proveedor
@@ -214,16 +218,54 @@ class ProveedorView(QWidget):
         delete_action.triggered.connect(self.eliminar_proveedor)
         toolbar.addAction(delete_action)
 
-        # Agregar la barra de herramientas al diseño
-        layout.addWidget(toolbar)
+        # Agregar la barra de herramientas al contenedor header_layout
+        header_layout.addWidget(toolbar)
+
+        # Contenedor para la barra de búsqueda
+        search_container = QWidget()
+        search_container_layout = QHBoxLayout(search_container)
+        search_container_layout.setContentsMargins(0, 0, 0, 0)
+        search_container_layout.setSpacing(5)
+        search_container.setStyleSheet("background-color: #2f3136; padding: 5px;")
+        
+        # Barra de búsqueda
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Buscar Proveedor")
+        self.search_input.setFixedWidth(200)
+        self.search_input.setStyleSheet("background-color: #2f3136; color: white ; border-bottom: 1px solid #72767d; padding: 5px;")
+        search_container_layout.addWidget(self.search_input)
+
+        # Agregar botón de búsqueda
+        button_search = QPushButton("Buscar")
+        button_search.setIcon(QIcon(r"ui/resources/img/search.png"))
+        button_search.setFixedSize(150, 50)
+        button_search.setIconSize(QSize(150, 50))
+        button_search.setToolTip("Buscar un proveedor")
+        button_search.setStyleSheet("color: white;")
+        button_search.clicked.connect(self.buscar_proveedor)
+        search_container_layout.addWidget(button_search)
+
+        # Agregar botón de "Mostrar Todo"
+        button_show_all = QPushButton("Mostrar Todo")
+        button_show_all.setIcon(QIcon(r"ui/resources/img/datos.png"))
+        button_show_all.setFixedSize(150, 50)
+        button_show_all.setIconSize(QSize(150, 50))
+        button_show_all.setToolTip("Mostrar todos los proveedores")
+        button_show_all.setStyleSheet("color: white;")
+        button_show_all.clicked.connect(self.reload_data)  # Conectar al método correspondiente
+        search_container_layout.addWidget(button_show_all)
+
+        # Agregar la barra de búsqueda al contenedor header_layout
+        header_layout.addWidget(search_container)
+
+        # Agregar header_layout al layout principal
+        layout.addLayout(header_layout)
 
         # Crear la tabla para mostrar los datos
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(5)  # Número de columnas que deseas mostrar
         self.table_widget.setHorizontalHeaderLabels(["ID", "Nombre", "Apellido", "Dirección", "Teléfono"])
-        # Eliminar index de la tabla
-        self.table_widget.verticalHeader().hide()
-        # Ajustar el tamaño de las columnas automáticamente
+        self.table_widget.verticalHeader().hide()  # Ocultar encabezado vertical
         header = self.table_widget.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)  # Hacer que las columnas se estiren
 
@@ -234,7 +276,7 @@ class ProveedorView(QWidget):
 
         # Cambiar el tamaño de la fuente
         font = QFont()
-        font.setPointSize(12)  # Cambiar el tamaño de la fuente
+        font.setPointSize(12)
         self.table_widget.setFont(font)
 
         layout.addWidget(self.table_widget)
@@ -359,7 +401,9 @@ class ProveedorView(QWidget):
 
             dialog.setLayout(layout)
             dialog.exec_()
-
+        else:
+            QMessageBox.warning(self, "Proveedor no seleccionado", "Por favor, seleccione un proveedor para editar.")
+            
     def guardar_edicion(self, dialog, proveedor_id, nombre, apellido, direccion, telefono):
         # Validación de campos
         if not nombre or not apellido or not direccion or not telefono:
@@ -388,7 +432,6 @@ class ProveedorView(QWidget):
             QMessageBox.critical(self, "Error", f"No se pudo editar el proveedor: {str(e)}")
             print("Error al editar el proveedor:", str(e))
 
-
     def eliminar_proveedor(self):
         selected_index = self.table_widget.currentRow()
         if selected_index == -1:
@@ -416,7 +459,44 @@ class ProveedorView(QWidget):
                 QMessageBox.critical(self, "Error", f"No se pudo eliminar el proveedor: {str(e)}")
                 print("Error al eliminar el proveedor:", str(e))
 
+    def buscar_proveedor(self):
+        # Obtener el texto ingresado en la barra de búsqueda
+        termino_busqueda = self.search_input.text().strip()
 
+        # Validar que no esté vacío
+        if not termino_busqueda:
+            QMessageBox.warning(self, "Advertencia", "Por favor, ingresa un término para buscar.")
+            logging.warning("Por favor, ingresa un término para buscar.")
+            return
+
+        # Consultar la base de datos
+        try:
+            resultados = buscar_proveedor(termino_busqueda)  # Llamada a la función buscar_proveedor
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al buscar en la base de datos: {e}")
+            logging.error(f"Error al buscar en la base de datos: {e}")
+            return
+
+        # Verificar si hay resultados
+        if not resultados:
+            QMessageBox.information(self, "Sin resultados", "No se encontraron proveedores que coincidan con el término ingresado.")
+            logging.warning("No se encontraron proveedores que coincidan con el término ingresado.")
+            load_data_proveedor(self)  # Asumiendo que tienes una función para cargar los proveedores
+            return
+
+        # Poblar la tabla con los resultados
+        self.table_widget.setRowCount(0)  # Limpiar la tabla antes de llenarla
+        for row_idx, row_data in enumerate(resultados):
+            self.table_widget.insertRow(row_idx)
+            for col_idx, col_data in enumerate(row_data):
+                item = QTableWidgetItem(str(col_data))
+                self.table_widget.setItem(row_idx, col_idx, item)
+
+
+    def reload_data(self):
+        #limpiar search input
+        self.search_input.clear()
+        load_data_proveedor(self)
 
 class ProductosView(QWidget):
     def __init__(self):
@@ -427,34 +507,77 @@ class ProductosView(QWidget):
         layout = QVBoxLayout(self)
         self.setStyleSheet("background-color: white;")
 
+        # Crear un contenedor horizontal para la barra de herramientas y la barra de búsqueda
+        header_layout = QHBoxLayout()
+
         # Crear la barra de herramientas
         toolbar = QToolBar()
         toolbar.setStyleSheet("background-color: #2f3136; padding: 5px; color: white;")
 
-        # Acción para agregar proveedor
+        # Acción para agregar producto
         add_action = QAction(QIcon(r"ui\resources\img\agregar_producto.png"), "Agregar", self)
         add_action.triggered.connect(self.agregar_producto)
-        toolbar.setIconSize(QSize(45,45))
+        toolbar.setIconSize(QSize(45, 45))
         toolbar.addAction(add_action)
 
-        # Acción para editar proveedor
+        # Acción para editar producto
         edit_action = QAction(QIcon(r"ui\resources\img\editar_producto.png"), "Editar", self)
         edit_action.triggered.connect(self.editar_producto)
         toolbar.addAction(edit_action)
 
-        # Acción para eliminar proveedor
+        # Acción para eliminar producto
         delete_action = QAction(QIcon(r"ui\resources\img\eliminar_producto.png"), "Eliminar", self)
         delete_action.triggered.connect(self.eliminar_producto)
         toolbar.addAction(delete_action)
 
-        # Agregar la barra de herramientas al diseño
-        layout.addWidget(toolbar)
+        # Agregar la barra de herramientas al contenedor header_layout
+        header_layout.addWidget(toolbar)
+
+        # Contenedor para la barra de búsqueda
+        search_container = QWidget()
+        search_container_layout = QHBoxLayout(search_container)
+        search_container_layout.setContentsMargins(0, 0, 0, 0)
+        search_container_layout.setSpacing(5)
+        search_container.setStyleSheet("background-color: #2f3136; padding: 5px;")
+        
+        # Agregar barra de búsqueda al contenedor ( Declarar como atributo de clase )
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("Buscar productos")
+        self.search_input.setFixedWidth(200)
+        self.search_input.setStyleSheet("background-color: #2f3136; color: white ; border-bottom: 1px solid #72767d; padding: 5px;")
+        search_container_layout.addWidget(self.search_input)
+
+        # Agregar botón de búsqueda
+        button_search = QPushButton("Buscar")
+        button_search.setIcon(QIcon(r"ui/resources/img/search.png"))
+        button_search.setFixedSize(150, 50)
+        button_search.setIconSize(QSize(150, 50))
+        button_search.setToolTip("Buscar productos")
+        button_search.setStyleSheet("color: white;")
+        button_search.clicked.connect(self.buscar_producto)
+        search_container_layout.addWidget(button_search)
+
+        # Agregar botón de "Mostrar Todo"
+        button_show_all = QPushButton("Mostrar Todo")
+        button_show_all.setIcon(QIcon(r"ui/resources/img/datos.png"))
+        button_show_all.setFixedSize(150, 50)
+        button_show_all.setIconSize(QSize(150, 50))
+        button_show_all.setToolTip("Mostrar todos los productos")
+        button_show_all.setStyleSheet("color: white;")
+        button_show_all.clicked.connect(self.reload_data)  # Conectar al método correspondiente
+        search_container_layout.addWidget(button_show_all)
+
+        # Agregar la barra de búsqueda al contenedor header_layout
+        header_layout.addWidget(search_container)
+
+        # Agregar header_layout al layout principal
+        layout.addLayout(header_layout)
 
         # Crear la tabla para mostrar los datos
         self.table_widget = QTableWidget()
         self.table_widget.setColumnCount(7)  # Número de columnas que deseas mostrar
         self.table_widget.setHorizontalHeaderLabels(["ID", "Nombre", "Categoría", "Precio", "Cantidad en Stock"])
-        # Eliminar index de las filas
+        # Eliminar índice de las filas
         self.table_widget.verticalHeader().hide()
         # Ajustar el tamaño de las columnas automáticamente
         header = self.table_widget.horizontalHeader()
@@ -563,7 +686,6 @@ class ProductosView(QWidget):
         dialog.setLayout(layout)
         dialog.exec_()
 
-
     def guardar_nuevo_producto(self, dialog, nombre, categoria, precio, stock_minimo, cantidad, proveedor_id):
         # Validaciones de los datos
         if not nombre.strip() or not categoria.strip():
@@ -662,7 +784,8 @@ class ProductosView(QWidget):
 
             dialog.setLayout(layout)
             dialog.exec_()
-
+        else:
+            QMessageBox.warning(self, "Producto no seleccionado", "Por favor, selecciona un producto para editar.")
     def guardar_edicion(self, dialog, producto_id, nombre, precio, stock_minimo, cantidad, proveedor_id):
         # Validaciones de los datos
         if not nombre.strip():
@@ -708,17 +831,61 @@ class ProductosView(QWidget):
         load_data_productos(self)  # Recargar datos de productos
         dialog.accept()
 
-
     def eliminar_producto(self):
         current_row = self.table_widget.currentRow()
         if current_row >= 0:
             producto_id = self.table_widget.item(current_row, 0).text()
+            question = QMessageBox.question(
+                self,
+                "Eliminar Producto",
+                "¿Esta seguro de eliminar el producto?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if question == QMessageBox.No:
+                return
             delete_producto(producto_id)
             load_data_productos(self)  # Recargar datos
+        else:
+            QMessageBox.warning(self, "Producto no seleccionado", "Por favor, selecciona un producto para eliminar.")
 
     def reload_data(self):
         """Recarga los datos de la tabla de productos."""
+        # limpiar search input
+        self.search_input.setText("")
         load_data_productos(self)
+
+    def buscar_producto(self):
+        # Obtener el texto ingresado en la barra de búsqueda
+        termino_busqueda = self.search_input.text().strip()
+
+        # Validar que no esté vacío
+        if not termino_busqueda:
+            QMessageBox.warning(self, "Advertencia", "Por favor, ingresa un término para buscar.")
+            logging.warning("Por favor, ingresa un término para buscar.")
+            return
+
+        # Consultar la base de datos
+        try:
+            resultados = buscar_producto(termino_busqueda)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error al buscar en la base de datos: {e}")
+            logging.error(f"Error al buscar en la base de datos: {e}")
+            return
+
+        # Verificar si hay resultados
+        if not resultados:
+            QMessageBox.information(self, "Sin resultados", "No se encontraron productos que coincidan con el término ingresado.")
+            logging.warning("No se encontraron productos que coincidan con el término ingresado.")
+            load_data_productos(self)
+            return
+
+        # Poblar la tabla con los resultados
+        self.table_widget.setRowCount(0)  # Limpiar la tabla antes de llenarla
+        for row_idx, row_data in enumerate(resultados):
+            self.table_widget.insertRow(row_idx)
+            for col_idx, col_data in enumerate(row_data):
+                item = QTableWidgetItem(str(col_data))
+                self.table_widget.setItem(row_idx, col_idx, item)
 
 # Vista para el historial
 class AnalisisView(QWidget):

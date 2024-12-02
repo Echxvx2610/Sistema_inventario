@@ -10,3 +10,5 @@
 2024-11-29 22:52:03,608 - ERROR - Error al eliminar proveedor con ID 1: (1451, 'Cannot delete or update a parent row: a foreign key constraint fails (`sistema_inventario`.`historial_inventario`, CONSTRAINT `historial_inventario_ibfk_1` FOREIGN KEY (`producto_id`) REFERENCES `productos` (`producto_id`))')
 2024-11-29 23:58:49,956 - ERROR - Error al eliminar proveedor con ID 6: load_data_productos() missing 1 required positional argument: 'self'
 2024-11-29 23:59:39,653 - ERROR - Error al eliminar proveedor con ID 7: name 'self' is not defined
+2024-12-01 22:40:52,060 - ERROR - Error al buscar en la base de datos: (1054, "Unknown column 'proveedor_id' in 'SELECT'")
+2024-12-01 22:42:26,934 - ERROR - Error al buscar en la base de datos: (1054, "Unknown column 'nombre_proveedor' in 'SELECT'")

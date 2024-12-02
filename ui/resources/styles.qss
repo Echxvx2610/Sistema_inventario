@@ -61,3 +61,10 @@ QTabBar::tab:selected {
     background-color: tomato; /* Fondo de la pestaña seleccionada */
     color : white;
 }
+QToolTip {
+    background-color: #2f3136;  /* Color de fondo del tooltip */
+    color: #dcddde;  /* Color de texto del tooltip */
+    border: 1px solid #72767d;  /* Color del borde del tooltip */
+    padding: 5px;  /* Espaciado interno */
+    font-size: 12px;  /* Tamaño de la fuente */
+}

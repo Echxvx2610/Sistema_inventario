@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.menu_button.setStyleSheet("border: none;")
         self.menu_button.clicked.connect(self.toggle_sidebar)
         header_layout.addWidget(self.menu_button, alignment=Qt.AlignLeft)
-
+        
         # Creamos el sidebar
         self.sidebar = QFrame()
         self.sidebar.setStyleSheet(""" QFrame { background-color: #2f3136; border: none; } """)

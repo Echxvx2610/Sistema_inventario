@@ -170,6 +170,33 @@ def delete_proveedor(proveedor_id):
         logging.error(error_message)
         mostrar_error(error_message)
 
+def buscar_proveedor(nombre_proveedor):
+    """
+    Busca proveedores cuyo nombre contenga la cadena proporcionada.
+    
+    :param nombre_proveedor: Cadena de texto a buscar en el campo 'nombre_proveedor'.
+    :return: Lista de tuplas con los resultados de la búsqueda.
+    """
+    try:
+        # Conectar a la base de datos
+        connection = conectar_bd()
+        cursor = connection.cursor()
+
+        # Consulta a la base de datos
+        query = """
+        SELECT provedor_id, nombre_provedor, apellido_provedor, direccion, telefono
+        FROM proveedores
+        WHERE nombre_provedor LIKE %s
+        """
+        cursor.execute(query, (f"%{nombre_proveedor}%",))
+        rows = cursor.fetchall()
+
+        return rows  # Devuelve los resultados como una lista de tuplas
+    finally:
+        # Cerrar la conexión
+        cursor.close()
+        connection.close()
+
 # Operaciones CRUD de productos
 def load_data_productos(self):
     # Conectar a la base de datos con pymysql
@@ -281,7 +308,33 @@ def delete_producto(producto_id):
         if connection:
             connection.close()
 
+def buscar_producto(nombre_producto):
+    """
+    Busca productos cuyo nombre contenga la cadena proporcionada.
+    
+    :param nombre_producto: Cadena de texto a buscar en el campo 'nombre_producto'.
+    :return: Lista de tuplas con los resultados de la búsqueda.
+    """
+    try:
+        # Conectar a la base de datos
+        connection = conectar_bd()
+        cursor = connection.cursor()
 
+        # Consulta a la base de datos
+        query = """
+        SELECT producto_id, nombre_producto, categoria, precio, stock_minimo, cantidad_en_stock, provedor_id
+        FROM productos
+        WHERE nombre_producto LIKE %s
+        """
+        cursor.execute(query, (f"%{nombre_producto}%",))
+        rows = cursor.fetchall()
+
+        return rows  # Devuelve los resultados como una lista de tuplas
+    finally:
+        # Cerrar la conexión
+        cursor.close()
+        connection.close()
+        
 # Operaciones CRUD para Analisis de inventario
 def load_historial():
     """
@@ -323,7 +376,6 @@ def load_productos():
         # Cerrar la conexión
         cursor.close()
         connection.close()
-
 
 # Operaciones Usuarios
 def registrar_usuario(nombre_usuario, correo, contraseña, nivel_acceso=1):
