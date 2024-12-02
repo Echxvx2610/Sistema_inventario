@@ -13,6 +13,8 @@ import os
 import pandas as pd
 from playwright.async_api import async_playwright
 import asyncio
+import datetime
+
 
 class InicioView(QWidget):
     def __init__(self):
@@ -999,7 +1001,7 @@ class AnalisisView(QWidget):
         if not salidas:
             message = "No hay datos de movimientos tipo 'salida' en el historial para generar gráficos."
             QMessageBox.warning(self, "Advertencia", message)
-            return  # Salir de la función si no hay datos para los gráficos
+            return [], {}, {}, "", "", ""
 
         # Ordenar productos por salidas
         productos_mas_vendidos = sorted(salidas.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -1007,13 +1009,11 @@ class AnalisisView(QWidget):
         # Identificar productos menos vendidos (mayores entradas y menos salidas)
         productos_menos_vendidos = []
         for producto_id in entradas:
-            # Si el producto tiene más entradas que salidas
             cantidad_entrada = entradas[producto_id]
             cantidad_salida = salidas.get(producto_id, 0)
             if cantidad_entrada > cantidad_salida:
                 productos_menos_vendidos.append((producto_id, cantidad_entrada - cantidad_salida))
 
-        # Ordenar los productos menos vendidos por la diferencia entre entradas y salidas
         productos_menos_vendidos = sorted(productos_menos_vendidos, key=lambda x: x[1], reverse=True)[:5]
 
         # Gráfico 1: Ganancias por producto (barras)
@@ -1049,6 +1049,11 @@ class AnalisisView(QWidget):
             template='plotly_white'
         )
 
+        # Convertir los gráficos a HTML
+        fig1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn')
+        fig2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
+        fig3_html = fig3.to_html(full_html=False, include_plotlyjs=False)
+
         # Crear la carpeta y guardar los gráficos en un archivo HTML
         html_file = r'ui/resources/reportes/html/grafico_inventario.html'
         os.makedirs(os.path.dirname(html_file), exist_ok=True)
@@ -1069,7 +1074,7 @@ class AnalisisView(QWidget):
         # Abrir el archivo HTML en el navegador
         webbrowser.open(f'file://{os.path.abspath(html_file)}')
 
-        print(f"Gráficos generados y guardados en {html_file}.")
+        return ganancias, salidas, entradas, fig1_html, fig2_html, fig3_html
 
     def exportar_csv(self):
         try:
@@ -1092,9 +1097,98 @@ class AnalisisView(QWidget):
             QMessageBox.critical(self, "Error", f"Error al exportar el CSV: {e}")
             print(f"Error al exportar el CSV: {e}")
 
+    def generar_grafico_pdf(self):
+        # Cargar los datos de historial y productos
+        historial = load_historial()  # Función que carga los datos de `historial_inventario`
+        productos = load_productos()  # Función que carga los datos de la tabla `productos`
+
+        # Crear un diccionario para mapear producto_id a información del producto
+        info_productos = {producto[0]: {"nombre": producto[1], "precio": float(producto[3])} for producto in productos}
+
+        # Separar datos del historial
+        ids_productos = [row[1] for row in historial]
+        cantidad_movimiento = [row[2] for row in historial]
+        tipo_movimiento = [row[5] for row in historial]
+
+        # Calcular las métricas necesarias
+        ganancias = []
+        salidas = {}
+        entradas = {}
+
+        for producto_id, cantidad, movimiento in zip(ids_productos, cantidad_movimiento, tipo_movimiento):
+            if movimiento == 'salida' and producto_id in info_productos:
+                precio = info_productos[producto_id]["precio"]
+                ganancias.append(precio * cantidad)
+                salidas[producto_id] = salidas.get(producto_id, 0) + cantidad
+            elif movimiento == 'entrada' and producto_id in info_productos:
+                entradas[producto_id] = entradas.get(producto_id, 0) + cantidad
+
+        # Validar si hay datos para salidas
+        if not salidas:
+            message = "No hay datos de movimientos tipo 'salida' en el historial para generar gráficos."
+            QMessageBox.warning(self, "Advertencia", message)
+            return [], {}, {}, "", "", ""
+
+        # Ordenar productos por salidas
+        productos_mas_vendidos = sorted(salidas.items(), key=lambda x: x[1], reverse=True)[:5]
+
+        # Identificar productos menos vendidos (mayores entradas y menos salidas)
+        productos_menos_vendidos = []
+        for producto_id in entradas:
+            cantidad_entrada = entradas[producto_id]
+            cantidad_salida = salidas.get(producto_id, 0)
+            if cantidad_entrada > cantidad_salida:
+                productos_menos_vendidos.append((producto_id, cantidad_entrada - cantidad_salida))
+
+        productos_menos_vendidos = sorted(productos_menos_vendidos, key=lambda x: x[1], reverse=True)[:5]
+
+        # Gráfico 1: Ganancias por producto (barras)
+        fig1 = go.Figure(data=[go.Bar(
+            x=[info_productos[producto_id]["nombre"] for producto_id in salidas.keys()],
+            y=ganancias,
+            marker=dict(color='green')
+        )])
+        fig1.update_layout(
+            title='Ganancias por Producto',
+            xaxis_title='Producto',
+            yaxis_title='Ganancias ($)',
+            template='plotly_white'
+        )
+
+        # Gráfico 2: Productos más vendidos (pastel)
+        fig2 = px.pie(
+            names=[info_productos[producto_id]["nombre"] for producto_id, _ in productos_mas_vendidos],
+            values=[cantidad for _, cantidad in productos_mas_vendidos],
+            title='Productos Más Vendidos'
+        )
+
+        # Gráfico 3: Productos menos vendidos (barras)
+        fig3 = go.Figure(data=[go.Bar(
+            x=[info_productos[producto_id]["nombre"] for producto_id, _ in productos_menos_vendidos],
+            y=[cantidad for _, cantidad in productos_menos_vendidos],
+            marker=dict(color='red')
+        )])
+        fig3.update_layout(
+            title='Productos Menos Vendidos (Con Más Entradas y Menos Salidas)',
+            xaxis_title='Producto',
+            yaxis_title='Diferencia de Entradas y Salidas',
+            template='plotly_white'
+        )
+
+        # Convertir los gráficos a HTML
+        fig1_html = fig1.to_html(full_html=False, include_plotlyjs='cdn')
+        fig2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
+        fig3_html = fig3.to_html(full_html=False, include_plotlyjs=False)
+
+        return ganancias, salidas, entradas, fig1_html, fig2_html, fig3_html
+
+
     def exportar_pdf(self):
+        # Ruta del archivo HTML original
         html_file = r'ui/resources/reportes/html/grafico_inventario.html'
-        pdf_file = os.path.join('ui/resources/reportes/pdf', 'grafico_inventario.pdf')  # Ruta de guardado actualizada
+        
+        # Ruta del archivo PDF de salida
+        pdf_file = os.path.join('ui/resources/reportes/pdf', 'grafico_inventario.pdf')
 
         # Crear la barra de progreso
         self.progress_bar = QProgressBar(self)
@@ -1102,6 +1196,48 @@ class AnalisisView(QWidget):
         self.progress_bar.setValue(0)  # Valor inicial en 0
         self.progress_bar.setTextVisible(True)  # Mostrar texto del progreso
         self.layout().addWidget(self.progress_bar)  # Agregar la barra de progreso al layout
+
+        # Obtener la información clave
+        current_datetime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        software_version = "sistema_inv v1.1"
+        user_email = "correousuario@gmail.com"
+
+        # Llamar a la función generar_grafico() para obtener los datos del inventario y los gráficos
+        ganancia, salidas, entradas, fig1_html, fig2_html, fig3_html = self.generar_grafico_pdf()
+
+        # Calcular los totales
+        total_valor_inventario = sum(ganancia)  # Sumar las ganancias
+        gasto_inventario = sum([salidas[producto_id] for producto_id in salidas])  # Gasto total de salidas
+        venta_inventario = total_valor_inventario  # Las ganancias ya representan la venta total
+
+        # Crear el contenido del HTML con la información clave
+        html_content = f"""
+        <html>
+        <head>
+            <title>Reporte de Inventario</title>
+        </head>
+        <body>
+            <h1>Reporte de Inventario</h1>
+            
+            <p><strong>Fecha y hora:</strong> {current_datetime}</p>
+            <p><strong>Software:</strong> {software_version}</p>
+            <p><strong>Correo Usuario:</strong> {user_email}</p>
+            <p><strong>Valor Total Inventario:</strong> ${total_valor_inventario}</p>
+            <p><strong>Gasto de Inventario:</strong> ${gasto_inventario}</p>
+            <p><strong>Venta de Inventario:</strong> ${venta_inventario}</p>
+
+            <br>
+            <h2>Gráficos</h2>
+            {fig1_html}
+            {fig2_html}
+            {fig3_html}
+        </body>
+        </html>
+        """
+
+        # Guardar el HTML modificado con la información clave
+        with open(html_file, 'w') as f:
+            f.write(html_content)
 
         # Crear el hilo para la exportación del PDF
         self.export_thread = ExportPdfThread(html_file, pdf_file)
@@ -1120,10 +1256,10 @@ class AnalisisView(QWidget):
 
     def on_export_finished(self):
         QMessageBox.information(self, "Éxito", "PDF exportado exitosamente.")
-        print("PDF exportado exitosamente.")
+        #print("PDF exportado exitosamente.")
         
         # Asegurarnos de que la barra esté al 100% antes de ocultarla o restablecerla
-        self.progress_bar.setValue(100)
+        #self.progress_bar.setValue(100)
         
         # Aquí podemos optar por eliminar la barra de progreso o restablecerla
         self.reset_progress_bar()
@@ -1134,9 +1270,6 @@ class AnalisisView(QWidget):
         
         # Restablecer la barra de progreso en caso de error
         self.progress_bar.setValue(0)
-        
-        # Aquí podemos optar por eliminar la barra de progreso o restablecerla
-        self.reset_progress_bar()
 
     def reset_progress_bar(self):
         """Restablece o elimina la barra de progreso después de la tarea."""
