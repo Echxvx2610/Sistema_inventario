@@ -1,0 +1,10 @@
+crear entorno virtual (env_inv)
+instalar dependencias
+instalar recursos playwrrigth -> python -m playwright install
+instalar gestor mariaDB -> heidiSQL
+importar la base de datos y tablas -> comando heidiSQL o
+crear bd y tablas con funcion python -> operaciones_BD.py
+
+usar credenciales BD -> -u root -p admin
+
+pipreqs C:\Backup\programmer\Python\Fundamentos_BD\Sistema_inventario --encoding=utf-8

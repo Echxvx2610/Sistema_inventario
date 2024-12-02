@@ -10,7 +10,9 @@ import plotly.graph_objects as go
 import plotly.express as px
 import webbrowser
 import os
-
+import pandas as pd
+from playwright.async_api import async_playwright
+import asyncio
 
 class InicioView(QWidget):
     def __init__(self):
@@ -983,11 +985,15 @@ class AnalisisView(QWidget):
         # Calcular las métricas necesarias
         ganancias = []
         salidas = {}
+        entradas = {}
+
         for producto_id, cantidad, movimiento in zip(ids_productos, cantidad_movimiento, tipo_movimiento):
             if movimiento == 'salida' and producto_id in info_productos:
                 precio = info_productos[producto_id]["precio"]
                 ganancias.append(precio * cantidad)
                 salidas[producto_id] = salidas.get(producto_id, 0) + cantidad
+            elif movimiento == 'entrada' and producto_id in info_productos:
+                entradas[producto_id] = entradas.get(producto_id, 0) + cantidad
 
         # Validar si hay datos para salidas
         if not salidas:
@@ -997,7 +1003,18 @@ class AnalisisView(QWidget):
 
         # Ordenar productos por salidas
         productos_mas_vendidos = sorted(salidas.items(), key=lambda x: x[1], reverse=True)[:5]
-        productos_menos_vendidos = sorted(salidas.items(), key=lambda x: x[1])[:5]
+
+        # Identificar productos menos vendidos (mayores entradas y menos salidas)
+        productos_menos_vendidos = []
+        for producto_id in entradas:
+            # Si el producto tiene más entradas que salidas
+            cantidad_entrada = entradas[producto_id]
+            cantidad_salida = salidas.get(producto_id, 0)
+            if cantidad_entrada > cantidad_salida:
+                productos_menos_vendidos.append((producto_id, cantidad_entrada - cantidad_salida))
+
+        # Ordenar los productos menos vendidos por la diferencia entre entradas y salidas
+        productos_menos_vendidos = sorted(productos_menos_vendidos, key=lambda x: x[1], reverse=True)[:5]
 
         # Gráfico 1: Ganancias por producto (barras)
         fig1 = go.Figure(data=[go.Bar(
@@ -1026,9 +1043,9 @@ class AnalisisView(QWidget):
             marker=dict(color='red')
         )])
         fig3.update_layout(
-            title='Productos Menos Vendidos (Merma)',
+            title='Productos Menos Vendidos (Con Más Entradas y Menos Salidas)',
             xaxis_title='Producto',
-            yaxis_title='Cantidad Vendida',
+            yaxis_title='Diferencia de Entradas y Salidas',
             template='plotly_white'
         )
 
@@ -1036,19 +1053,141 @@ class AnalisisView(QWidget):
         html_file = r'ui/resources/reportes/html/grafico_inventario.html'
         os.makedirs(os.path.dirname(html_file), exist_ok=True)
 
+        # Agregar encabezado al HTML
         with open(html_file, 'w') as f:
+            f.write('<html>\n<head>\n<title>Reporte de Inventario</title>\n</head>\n<body>\n')
+            f.write('<h1 style="text-align: center;">Reporte de Inventario de Productos</h1>\n')  # Título principal del reporte
+            f.write('<p>A continuación se presentan los gráficos de inventario:</p>\n')  # Descripción o subtítulo
+            
+            # Insertar los gráficos generados
             f.write(fig1.to_html(full_html=False, include_plotlyjs='cdn'))
             f.write(fig2.to_html(full_html=False, include_plotlyjs=False))
             f.write(fig3.to_html(full_html=False, include_plotlyjs=False))
+    
+            f.write('</body>\n</html>')
 
         # Abrir el archivo HTML en el navegador
         webbrowser.open(f'file://{os.path.abspath(html_file)}')
 
         print(f"Gráficos generados y guardados en {html_file}.")
 
-
     def exportar_csv(self):
-        print("Exportar CSV: Implementar esta función.")
+        try:
+            # Obtener los datos que deseas exportar, por ejemplo, productos
+            productos = load_productos()  # Cargar productos de la base de datos
+            # Crear un DataFrame de pandas con los datos
+            df = pd.DataFrame(productos, columns=["producto_id", "nombre_producto", "categoria", "precio", "stock_minimo", "cantidad_en_stock", "proveedor_id"])
+
+            # Ruta del archivo CSV
+            csv_file = 'ui/resources/reportes/csv/inventario_productos.csv'
+
+            # Exportar el DataFrame a un archivo CSV
+            df.to_csv(csv_file, index=False)
+
+            # Mostrar mensaje de éxito
+            QMessageBox.information(self, "Éxito", f"CSV exportado exitosamente a {csv_file}")
+            print(f"CSV exportado exitosamente a {csv_file}")
+        except Exception as e:
+            # Manejar posibles errores
+            QMessageBox.critical(self, "Error", f"Error al exportar el CSV: {e}")
+            print(f"Error al exportar el CSV: {e}")
 
     def exportar_pdf(self):
-        print("Exportar PDF: Implementar esta función.")
+        html_file = r'ui/resources/reportes/html/grafico_inventario.html'
+        pdf_file = os.path.join('ui/resources/reportes/pdf', 'grafico_inventario.pdf')  # Ruta de guardado actualizada
+
+        # Crear la barra de progreso
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setRange(0, 100)  # Rango de 0 a 100
+        self.progress_bar.setValue(0)  # Valor inicial en 0
+        self.progress_bar.setTextVisible(True)  # Mostrar texto del progreso
+        self.layout().addWidget(self.progress_bar)  # Agregar la barra de progreso al layout
+
+        # Crear el hilo para la exportación del PDF
+        self.export_thread = ExportPdfThread(html_file, pdf_file)
+
+        # Conectar las señales
+        self.export_thread.finished.connect(self.on_export_finished)
+        self.export_thread.error.connect(self.on_export_error)
+        self.export_thread.progress.connect(self.update_progress_bar)
+
+        # Iniciar el hilo
+        self.export_thread.start()
+
+    def update_progress_bar(self, value):
+        # Actualizar la barra de progreso con el valor recibido
+        self.progress_bar.setValue(value)
+
+    def on_export_finished(self):
+        QMessageBox.information(self, "Éxito", "PDF exportado exitosamente.")
+        print("PDF exportado exitosamente.")
+        
+        # Asegurarnos de que la barra esté al 100% antes de ocultarla o restablecerla
+        self.progress_bar.setValue(100)
+        
+        # Aquí podemos optar por eliminar la barra de progreso o restablecerla
+        self.reset_progress_bar()
+
+    def on_export_error(self, error_message):
+        QMessageBox.critical(self, "Error", error_message)
+        print(f"Error al exportar el PDF: {error_message}")
+        
+        # Restablecer la barra de progreso en caso de error
+        self.progress_bar.setValue(0)
+        
+        # Aquí podemos optar por eliminar la barra de progreso o restablecerla
+        self.reset_progress_bar()
+
+    def reset_progress_bar(self):
+        """Restablece o elimina la barra de progreso después de la tarea."""
+        # Opción 1: Restablecer el valor de la barra de progreso
+        #self.progress_bar.setValue(0)
+        
+        # Opción 2: Eliminar la barra de progreso de la interfaz (si ya no la necesitas)
+        self.layout().removeWidget(self.progress_bar)
+        self.progress_bar.deleteLater()  # Esto eliminará el widget de forma segura
+
+
+# Crear un hilo para ejecutar la tarea asincrónica
+class ExportPdfThread(QThread):
+    finished = Signal()  # Señal que se emite cuando el hilo termina
+    error = Signal(str)  # Señal que se emite si hay un error
+    progress = Signal(int)  # Señal para actualizar la barra de progreso
+
+    def __init__(self, html_file, pdf_file):
+        super().__init__()
+        self.html_file = html_file
+        self.pdf_file = pdf_file
+
+    def run(self):
+        asyncio.run(self.exportar_pdf())  # Ejecutar la función asincrónica en el hilo
+
+    async def exportar_pdf(self):
+        try:
+            # Crear la carpeta de destino si no existe
+            pdf_dir = os.path.dirname(self.pdf_file)
+            os.makedirs(pdf_dir, exist_ok=True)
+
+            # Iniciar Playwright
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+
+                # Cargar el archivo HTML
+                await page.goto(f'file:///{self.html_file}', wait_until='load')
+
+                # Simular progreso de la generación del PDF (actualizamos la barra de progreso)
+                for i in range(1, 101):
+                    self.progress.emit(i)  # Emitir el progreso de 1 a 100
+                    await asyncio.sleep(0.05)  # Simulamos un pequeño retraso para la actualización de progreso
+
+                # Generar el PDF
+                await page.pdf(path=self.pdf_file, format='A4')
+                await browser.close()
+
+            # Emitir señal de finalización
+            self.finished.emit()
+
+        except Exception as e:
+            # Emitir señal de error
+            self.error.emit(f"Error al exportar el PDF: {e}")
