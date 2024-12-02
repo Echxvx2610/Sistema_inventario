@@ -487,22 +487,49 @@ class ProductosView(QWidget):
         layout.addWidget(QLabel("Nombre:"))
         layout.addWidget(nombre_input)
 
-        categoria_input = QLineEdit(dialog)
+        # ComboBox para seleccionar la categoría
+        categoria_combo = QComboBox(dialog)
+        categorias = ["Bebidas", "Snack", "Limpieza", "Autos", "Electronicos", "Abarrotes", "Carnes", "Frutas & Verduras"]
+        
+        # Añadir las opciones al QComboBox
+        categoria_combo.addItems(categorias)
+        
+        # Campo para agregar una nueva categoría si no está en la lista
+        nueva_categoria_input = QLineEdit(dialog)
+        nueva_categoria_input.setPlaceholderText("Agregar nueva categoría (opcional)")
+        
+        # Botón para confirmar la adición de nueva categoría
+        agregar_categoria_button = QPushButton("Agregar Categoría", dialog)
+        def agregar_categoria():
+            nueva_categoria = nueva_categoria_input.text().strip()
+            if nueva_categoria and nueva_categoria not in categorias:
+                categorias.append(nueva_categoria)
+                categoria_combo.addItem(nueva_categoria)
+                nueva_categoria_input.clear()
+                QMessageBox.information(dialog, "Categoría Agregada", f"Categoría '{nueva_categoria}' agregada exitosamente.")
+        
+        agregar_categoria_button.clicked.connect(agregar_categoria)
+        
         layout.addWidget(QLabel("Categoría:"))
-        layout.addWidget(categoria_input)
+        layout.addWidget(categoria_combo)
+        layout.addWidget(nueva_categoria_input)
+        layout.addWidget(agregar_categoria_button)
 
+        # Precio input
         precio_input = QDoubleSpinBox(dialog)
         precio_input.setRange(0.01, 999999.99)
         precio_input.setValue(100.0)
         layout.addWidget(QLabel("Precio:"))
         layout.addWidget(precio_input)
 
+        # Stock mínimo input
         stock_minimo_input = QSpinBox(dialog)
         stock_minimo_input.setRange(0, 999999)
         stock_minimo_input.setValue(10)
         layout.addWidget(QLabel("Stock Mínimo:"))
         layout.addWidget(stock_minimo_input)
 
+        # Cantidad en stock input
         cantidad_input = QSpinBox(dialog)
         cantidad_input.setRange(0, 999999)
         cantidad_input.setValue(0)
@@ -525,7 +552,7 @@ class ProductosView(QWidget):
         save_button.clicked.connect(lambda: self.guardar_nuevo_producto(
             dialog,
             nombre_input.text(),                # nombre_producto
-            categoria_input.text(),             # categoría
+            categoria_combo.currentText(),      # categoría seleccionada
             precio_input.value(),               # precio
             stock_minimo_input.value(),         # stock_minimo
             cantidad_input.value(),             # cantidad_en_stock
@@ -535,6 +562,7 @@ class ProductosView(QWidget):
 
         dialog.setLayout(layout)
         dialog.exec_()
+
 
     def guardar_nuevo_producto(self, dialog, nombre, categoria, precio, stock_minimo, cantidad, proveedor_id):
         # Validaciones de los datos
@@ -570,9 +598,9 @@ class ProductosView(QWidget):
             producto_id = self.table_widget.item(current_row, 0).text()
             nombre_actual = self.table_widget.item(current_row, 1).text()
             precio_actual = self.table_widget.item(current_row, 3).text()
+            print(precio_actual)
             # Obtener stock mínimo actual desde la tabla
-            stock_minimo_actual = self.table_widget.item(current_row, 4).text()  # 
-            
+            stock_minimo_actual = self.table_widget.item(current_row, 4).text() 
             stock_actual = self.table_widget.item(current_row, 5).text()
             
             # Crear un diálogo para editar el producto
@@ -587,19 +615,24 @@ class ProductosView(QWidget):
             layout.addWidget(QLabel("Nombre:"))
             layout.addWidget(nombre_input)
 
-            precio_input = QDoubleSpinBox(dialog)
-            precio_input.setValue(float(precio_actual))
+            # Crear el input para el precio (usando QLineEdit)
+            precio_input = QLineEdit(dialog)
+            precio_input.setText(precio_actual)  # Establecer el valor inicial
+            precio_input.setValidator(QDoubleValidator(0.0, 10000.0, 2))  # Validar como número con dos decimales
             layout.addWidget(QLabel("Precio:"))
             layout.addWidget(precio_input)
 
-            # Agregar input para stock mínimo
-            stock_minimo_input = QSpinBox(dialog)  # Nuevo campo para stock mínimo
-            stock_minimo_input.setValue(int(stock_minimo_actual))  # Configurar valor inicial
-            layout.addWidget(QLabel("Stock Mínimo:"))  # Etiqueta para stock mínimo
-            layout.addWidget(stock_minimo_input)  # Añadir al layout
+            # Crear el input para el stock mínimo (usando QLineEdit)
+            stock_minimo_input = QLineEdit(dialog)
+            stock_minimo_input.setText(stock_minimo_actual)  # Establecer el valor inicial
+            stock_minimo_input.setValidator(QIntValidator(0, 10000))  # Validar como número entero
+            layout.addWidget(QLabel("Stock Mínimo:"))
+            layout.addWidget(stock_minimo_input)
 
-            stock_input = QSpinBox(dialog)
-            stock_input.setValue(int(stock_actual))
+            # Crear el input para la cantidad en stock (usando QLineEdit)
+            stock_input = QLineEdit(dialog)
+            stock_input.setText(stock_actual)  # Establecer el valor inicial
+            stock_input.setValidator(QIntValidator(0, 10000))  # Validar como número entero
             layout.addWidget(QLabel("Cantidad en Stock:"))
             layout.addWidget(stock_input)
 
@@ -620,9 +653,9 @@ class ProductosView(QWidget):
                 dialog,
                 producto_id,
                 nombre_input.text(),                   # nombre_producto
-                precio_input.value(),                  # precio
-                stock_minimo_input.value(),            # stock_minimo
-                stock_input.value(),                   # cantidad_en_stock
+                precio_input.text(),                   # precio (como texto)
+                stock_minimo_input.text(),             # stock_minimo (como texto)
+                stock_input.text(),                    # cantidad_en_stock (como texto)
                 proveedor_combo.currentData()           # proveedor_id
             ))
             layout.addWidget(save_button)
@@ -636,12 +669,30 @@ class ProductosView(QWidget):
             QMessageBox.warning(self, "Nombre inválido", "El nombre no puede estar vacío.")
             return
 
+        try:
+            precio = float(precio)  # Intentar convertir el precio de texto a flotante
+        except ValueError:
+            QMessageBox.warning(self, "Precio inválido", "El precio debe ser un número válido.")
+            return
+
         if precio <= 0:
             QMessageBox.warning(self, "Precio inválido", "El precio debe ser mayor que 0.")
             return
 
+        try:
+            stock_minimo = int(stock_minimo)  # Intentar convertir el stock mínimo a entero
+        except ValueError:
+            QMessageBox.warning(self, "Stock Mínimo inválido", "El stock mínimo debe ser un número válido.")
+            return
+
         if stock_minimo <= 0:
             QMessageBox.warning(self, "Stock Mínimo inválido", "El stock mínimo debe ser mayor que 0.")
+            return
+
+        try:
+            cantidad = int(cantidad)  # Intentar convertir la cantidad a entero
+        except ValueError:
+            QMessageBox.warning(self, "Cantidad inválida", "La cantidad debe ser un número válido.")
             return
 
         if cantidad < 0:
@@ -657,6 +708,7 @@ class ProductosView(QWidget):
         load_data_productos(self)  # Recargar datos de productos
         dialog.accept()
 
+
     def eliminar_producto(self):
         current_row = self.table_widget.currentRow()
         if current_row >= 0:
@@ -667,6 +719,7 @@ class ProductosView(QWidget):
     def reload_data(self):
         """Recarga los datos de la tabla de productos."""
         load_data_productos(self)
+
 # Vista para el historial
 class AnalisisView(QWidget):
     def __init__(self):
@@ -748,42 +801,85 @@ class AnalisisView(QWidget):
 
     # Métodos para manejar las acciones de la barra de herramientas
     def generar_grafico(self):
-        # Aquí puedes extraer los datos que desees para el gráfico
-        rows = load_historial()  # Esta es la misma función que usas para cargar los datos en la tabla
-        ids_productos = [row[1] for row in rows]  # Suponiendo que el Producto ID está en la segunda columna
-        cantidad_movimiento = [row[2] for row in rows]  # Suponiendo que la cantidad está en la tercera columna
-        fechas_movimiento = [row[3] for row in rows]  # Suponiendo que la fecha está en la cuarta columna
+        # Cargar los datos de historial y productos
+        historial = load_historial()  # Función que carga los datos de `historial_inventario`
+        productos = load_productos()  # Función que carga los datos de la tabla `productos`
 
-        # Crear el gráfico, por ejemplo, un gráfico de barras para la cantidad por producto
-        fig = go.Figure(data=[go.Bar(
-            x=ids_productos,
-            y=cantidad_movimiento,
-            hoverinfo='x+y',  # Mostrar información del gráfico cuando se pase el mouse sobre las barras
-            marker=dict(color='royalblue')
+        # Crear un diccionario para mapear producto_id a información del producto
+        info_productos = {producto[0]: {"nombre": producto[1], "precio": float(producto[3])} for producto in productos}
+
+        # Separar datos del historial
+        ids_productos = [row[1] for row in historial]
+        cantidad_movimiento = [row[2] for row in historial]
+        tipo_movimiento = [row[5] for row in historial]
+
+        # Calcular las métricas necesarias
+        ganancias = []
+        salidas = {}
+        for producto_id, cantidad, movimiento in zip(ids_productos, cantidad_movimiento, tipo_movimiento):
+            if movimiento == 'salida' and producto_id in info_productos:
+                precio = info_productos[producto_id]["precio"]
+                ganancias.append(precio * cantidad)
+                salidas[producto_id] = salidas.get(producto_id, 0) + cantidad
+
+        # Validar si hay datos para salidas
+        if not salidas:
+            message = "No hay datos de movimientos tipo 'salida' en el historial para generar gráficos."
+            QMessageBox.warning(self, "Advertencia", message)
+            return  # Salir de la función si no hay datos para los gráficos
+
+        # Ordenar productos por salidas
+        productos_mas_vendidos = sorted(salidas.items(), key=lambda x: x[1], reverse=True)[:5]
+        productos_menos_vendidos = sorted(salidas.items(), key=lambda x: x[1])[:5]
+
+        # Gráfico 1: Ganancias por producto (barras)
+        fig1 = go.Figure(data=[go.Bar(
+            x=[info_productos[producto_id]["nombre"] for producto_id in salidas.keys()],
+            y=ganancias,
+            marker=dict(color='green')
         )])
-
-        # Configuración del gráfico
-        fig.update_layout(
-            title='Movimientos de Inventario por Producto',
-            xaxis_title='Producto ID',
-            yaxis_title='Cantidad Movimiento',
-            template='plotly_dark'  # Estilo de gráfico
+        fig1.update_layout(
+            title='Ganancias por Producto',
+            xaxis_title='Producto',
+            yaxis_title='Ganancias ($)',
+            template='plotly_white'
         )
 
-        # Definir la ruta para guardar el archivo HTML
-        html_file = r'ui/resources/reportes/html/grafico_inventario.html'
+        # Gráfico 2: Productos más vendidos (pastel)
+        fig2 = px.pie(
+            names=[info_productos[producto_id]["nombre"] for producto_id, _ in productos_mas_vendidos],
+            values=[cantidad for _, cantidad in productos_mas_vendidos],
+            title='Productos Más Vendidos'
+        )
 
-        # Asegurarse de que la carpeta exista
+        # Gráfico 3: Productos menos vendidos (barras)
+        fig3 = go.Figure(data=[go.Bar(
+            x=[info_productos[producto_id]["nombre"] for producto_id, _ in productos_menos_vendidos],
+            y=[cantidad for _, cantidad in productos_menos_vendidos],
+            marker=dict(color='red')
+        )])
+        fig3.update_layout(
+            title='Productos Menos Vendidos (Merma)',
+            xaxis_title='Producto',
+            yaxis_title='Cantidad Vendida',
+            template='plotly_white'
+        )
+
+        # Crear la carpeta y guardar los gráficos en un archivo HTML
+        html_file = r'ui/resources/reportes/html/grafico_inventario.html'
         os.makedirs(os.path.dirname(html_file), exist_ok=True)
 
-        # Crear el archivo HTML para el gráfico
-        fig.write_html(html_file)
+        with open(html_file, 'w') as f:
+            f.write(fig1.to_html(full_html=False, include_plotlyjs='cdn'))
+            f.write(fig2.to_html(full_html=False, include_plotlyjs=False))
+            f.write(fig3.to_html(full_html=False, include_plotlyjs=False))
 
         # Abrir el archivo HTML en el navegador
         webbrowser.open(f'file://{os.path.abspath(html_file)}')
 
-        print(f"Gráfico generado y abierto en el navegador. Archivo guardado en {html_file}")
-        
+        print(f"Gráficos generados y guardados en {html_file}.")
+
+
     def exportar_csv(self):
         print("Exportar CSV: Implementar esta función.")
 

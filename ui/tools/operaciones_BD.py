@@ -301,6 +301,30 @@ def load_historial():
         cursor.close()
         connection.close()
 
+def load_productos():
+    """
+    Recupera los datos de la tabla 'productos' y los devuelve como una lista de tuplas.
+    """
+    try:
+        # Conectar a la base de datos
+        connection = conectar_bd()  # Asegúrate de que esta función esté disponible en tu proyecto
+        cursor = connection.cursor()
+
+        # Consulta a la base de datos
+        query = """
+        SELECT producto_id, nombre_producto, categoria, precio, stock_minimo, cantidad_en_stock, provedor_id
+        FROM productos
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+        return rows  # Devuelve los datos como una lista de tuplas
+    finally:
+        # Cerrar la conexión
+        cursor.close()
+        connection.close()
+
+
 # Operaciones Usuarios
 def registrar_usuario(nombre_usuario, correo, contraseña, nivel_acceso=1):
     """

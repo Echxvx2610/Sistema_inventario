@@ -41,29 +41,6 @@ class MainWindow(QMainWindow):
         self.menu_button.clicked.connect(self.toggle_sidebar)
         header_layout.addWidget(self.menu_button, alignment=Qt.AlignLeft)
 
-        # Contenedor para la barra de búsqueda
-        search_container = QWidget()
-        search_container_layout = QHBoxLayout(search_container)
-        search_container_layout.setContentsMargins(0, 0, 0, 0)
-        search_container_layout.setSpacing(5)
-
-        # Agregar barra de búsqueda al contenedor
-        search = QLineEdit()
-        search.setPlaceholderText("Buscar")
-        search.setFixedWidth(300)
-        search_container_layout.addWidget(search)
-
-        # Agregar botón de búsqueda
-        button_search = QPushButton()
-        button_search.setIcon(QIcon(r"ui/resources/img/search.png"))
-        button_search.setFixedSize(50, 50)
-        button_search.setIconSize(QSize(50, 50))
-        button_search.setStyleSheet("border: none;")
-        search_container_layout.addWidget(button_search)
-
-        # Agregar contenedor de búsqueda al encabezado
-        header_layout.addWidget(search_container, alignment=Qt.AlignCenter)
-
         # Creamos el sidebar
         self.sidebar = QFrame()
         self.sidebar.setStyleSheet(""" QFrame { background-color: #2f3136; border: none; } """)
