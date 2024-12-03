@@ -17,6 +17,7 @@ class MainWindow(QMainWindow):
         self.load_stylesheet(r"ui\resources\styles.qss")  # Carga los estilos desde el archivo
         self.setWindowTitle("Sistema de Inventario")
         self.setMinimumSize(1000, 600)
+        self.setWindowIcon(QIcon(r"ui/resources/img/logo.png"))
 
         # Creamos un widget principal y su layout
         main_widget = QWidget()

@@ -190,7 +190,6 @@ class InicioView(QWidget):
 
 class ProveedorView(QWidget):
     proveedor_eliminado = Signal()  # Señal para notificar cuando se elimine un proveedor
-
     def __init__(self):
         super().__init__()
         self.init_ui()
@@ -292,7 +291,7 @@ class ProveedorView(QWidget):
         # Crear un diálogo para agregar un nuevo proveedor
         dialog = QDialog(self)
         dialog.setWindowTitle("Agregar Proveedor")
-
+        dialog.setWindowIcon(QIcon(r"ui/resources/img/agregar_usuario.png"))
         layout = QVBoxLayout(dialog)
 
         # Campos para agregar proveedor
@@ -404,6 +403,7 @@ class ProveedorView(QWidget):
             layout.addWidget(save_button)
 
             dialog.setLayout(layout)
+            dialog.setWindowIcon(QIcon(r"ui/resources/img/editar_usuario.png"))
             dialog.exec_()
         else:
             QMessageBox.warning(self, "Proveedor no seleccionado", "Por favor, seleccione un proveedor para editar.")
@@ -606,7 +606,7 @@ class ProductosView(QWidget):
         # Crear un diálogo para agregar el producto
         dialog = QDialog(self)
         dialog.setWindowTitle("Agregar Producto")
-
+        dialog.setWindowIcon(QIcon(r"ui/resources/img/agregar_producto.png"))
         layout = QVBoxLayout(dialog)
 
         # Campos para ingresar datos
@@ -787,6 +787,7 @@ class ProductosView(QWidget):
             layout.addWidget(save_button)
 
             dialog.setLayout(layout)
+            dialog.setWindowIcon(QIcon(r"ui/resources/img/editar_producto.png"))
             dialog.exec_()
         else:
             QMessageBox.warning(self, "Producto no seleccionado", "Por favor, selecciona un producto para editar.")
